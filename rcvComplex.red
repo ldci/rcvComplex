@@ -11,22 +11,45 @@ Red [
 	}
 ]
 
-;--Red does not support complex numbers (z = a + ib), such as 3+4i, 5-2i, -8+7i or i
-;--i (iota) must be expressed as 1.0i
-;--1 + i must be expressed as 1.0 + 1.0i
-;--i = square-root -1
-;--i = square-root -1 -> i^2 = -1	;--magic value for complex numbers
-	
+;--thanks to Robert Davies (http://www.robertnz.net/) 
 
 complex: context [
-	;--Complex Number Object
-	complexR: object [
-		re:	0.0	;--real part (float!) 
-		im: 1.0	;--imaginary part (float!)
+	;--we need some hyperbolic functions not supported by red
+	
+	sinh: func [
+	"hyperbolic sine of x"
+		x		[float!]
+		return: [float!]
+	][
+		(exp x - exp negate x) / 2.0
 	]
 	
-	create: func [
-	"Creates a complex number froma block of integer or float values"
+	cosh: func [
+	"hyperbolic cos of x"
+		x		[float!]
+		return: [float!]
+	][
+		(exp x + exp negate x) / 2.0
+	]
+	
+	tanh: func [
+	"hyperbolic tangent of x"
+		x		[float!]
+		return: [float!]
+	][
+		sinh x / cosh x
+	]
+	;or tanh: (exp x - exp negate x) / (exp x + exp negate x)
+
+
+	;--Complex Number Object
+	complexR: object [
+		re:	0.0	;--Real part (float!) 
+		im: 1.0	;--Imaginary part (float!)
+	]
+	
+	cCreate: func [
+	"Creates a complex number from a block of integer or float values"
 		values	[block!]
 		return:	[object!]
 		/local 
@@ -38,7 +61,7 @@ complex: context [
 		_z
 	]
 	
-	negate: func [
+	cNegate: func [
 	"Returns the opposite of a complex number"
 		z		[object!]
 		return: [object!]
@@ -46,49 +69,49 @@ complex: context [
 		_z		[object!]
 	][
 		_z: copy z 
-		_z/re: 0.0 - z/re 
-		_z/im: 0.0 - z/im 
+		_z/re: negate z/re 
+		_z/im: negate z/im 
 		_z
 	]
 	
-	conjugate: func [
-	"Returns the conjugate of a complex number"
+	cConjugate: func [
+	"Returns the cConjugate of a complex number"
 		z		[object!]
 		return: [object!]
 		/local 
 		_z		[object!]
 	][
 		_z: copy z
-		_z/im: 0.0 - _z/im 
+		_z/im: negate _z/im 
 		_z
 	]
 	
-	real: func [
-	"Returns real part of complex number"
+	cReal: func [
+	"Returns cReal part of complex number"
 		z		[object!]
 		return: [float!]
 	][
 		z/re
 	]
 	
-	imaginary: func [
-	"Returns imaginary part of complex number"
+	cImaginary: func [
+	"Returns cImaginary part of complex number"
 		z		[object!]
 		return: [float!]
 	][
 		z/im
 	]
 	
-	modulus: func [
-	"Returns z modulus as a float"
+	cModulus: func [
+	"Returns z cModulus as a float"
 		z		[object!]
 		return: [float!]
 	][
 		square-root ((z/re * z/re) + (z/im * z/im))
 	]
 	
-	argument: func [
-	"Return z argument as an angle in radians or degrees"
+	cArgument: func [
+	"Return z cArgument as an angle in radians or degrees"
 		z		[object!]
 		return: [float!]
 		/degrees
@@ -96,7 +119,7 @@ complex: context [
 		either degrees [arctangent z/im / z/re][arctangent/radians z/im / z/re]
 	]
 	
-	clog: func [
+	cLog: func [
 	"Returns the natural logarithm of any complex number" 
 		z		[object!]
 		return:	[object!]
@@ -104,17 +127,124 @@ complex: context [
 		_z		[object!]
 	][
 		_z: copy complexR
-		_z/re: log-e modulus z
-		_z/im: argument z
+		_z/re: log-e cModulus z
+		_z/im: cArgument z
 		_z
 	]
 	
+	
+	cExp: func [
+	"Raises E (the base of natural logarithm) to the power specified"
+		z		[object!]
+		return:	[object!]
+	][
+		_z: copy complexR
+		_z/re: exp z/re * cos z/im
+		_z/im: sin z/im
+		_z
+	]
+	
+	;--to be improved
+	cPow: func [
+		z		[object!]
+		n		[integer!]
+		return:	[object!]
+		/local 
+		_z		[object!]
+	][
+		_z: copy complexR 
+		rn: power cModulus z n
+		_z/re: rn * cos (n * cArgument z) 
+		_z/im: rn * sin (n * cArgument z) 
+		_z
+	]
+	
+	;--trigonometric functions
+	
+	cSin: func [
+	"Returns the trigonometric sine of complex number"
+		z		[object!]
+		return:	[object!]
+		/local 
+		_z		[object!]
+	][
+		_z: copy complexR 
+		_z/re: sin z/re * cosh z/im
+		_z/im: cos z/re * sinh z/im
+		_z
+	]
+	
+	cCos: func [
+	"Returns the trigonometric cosine of complex number"
+		z		[object!]
+		return:	[object!]
+		/local 
+		_z		[object!]
+	][
+		_z: copy complexR 
+		_z/re: cos z/re * cosh z/im
+		_z/im: sin z/re * sinh z/im
+		_z
+	]
+	
+	cTan: func [
+	"Returns the trigonometric tangent of complex number"
+		z		[object!]
+		return:	[object!]
+		/local 
+		_z		[object!]
+		__z		[object!]
+	][
+		_z: copy complexR 
+		_z/re: tan z/re
+		_z/im: tanh z/im
+		__z: copy complexR 
+		__z/re: 1.0
+		__z/im: tan z/re * tanh z/im
+		cDivide _z __z
+	]
+	
+	
+	cSinh: func [
+	"Returns hyperbolic sine of complex number"
+		z		[object!]
+		return:	[object!]
+		/local iota _z
+	][
+		iota: cCreate [0.0 1.0]
+		_z: cSin cProduct iota z
+		cDivide _z iota
+	]
+	
+	cCosh: func [
+	"Returns hyperbolic sine of complex number"
+		z		[object!]
+		return:	[object!]
+		/local iota _z
+	][
+		iota:   cCreate [0.0 1.0]
+		cProduct iota z
+	]
+	
+	cTanh: func [
+	"Returns hyperbolic tangent of complex number"
+		z		[object!]
+		return:	[object!]
+		/local iota _z
+	][
+		iota: cCreate [0.0 1.0]
+		_z: cTan cProduct iota z
+		cDivide _z iota
+	]
+	
+	
+	;--Conversions
 	toPolar: func [
 	"Breaks a complex number into its polar component"
 		z		[object!]
 		return: [block!]
 	][
-		reduce [modulus z argument z]
+		reduce [cModulus z cArgument z]
 	]
 	
 
@@ -143,14 +273,15 @@ complex: context [
 	]
 	
 	;--Thanks to André Lichnerowicz (1915-1998)
-	;--we use a object compatible with matrix object
+	;--we use a object compatible with redCV matrix object
+	
 	toMatrix: func [
 	"Transforms complex number to a 2x2 matrix"
 		z		[object!]
 		return:	[object!]
 	][
-		;matrix/create 3 64 2x2 reduce [z/re 0.0 - z/im z/im z/re]
-		mdata: reduce [z/re 0.0 - z/im z/im z/re]
+		;matrix/cCreate 3 64 2x2 reduce [z/re 0.0 - z/im z/im z/re]
+		mdata: reduce [z/re negate z/im z/im z/re]
 		mx: object [
 				type: 3
 				bits: 64
@@ -162,8 +293,8 @@ complex: context [
 		mx
 	]
 	
-	
-	add: func [
+	;--complex numbers operators
+	cAdd: func [
 	"Adds 2 complex numbers"
 		z1		[object!]
 		z2		[object!]
@@ -177,7 +308,7 @@ complex: context [
 		_z
 	]
 	
-	subtract: func [
+	cSubtract: func [
 	"Subtracts 2 complex numbers"
 		z1		[object!]
 		z2		[object!]
@@ -192,7 +323,7 @@ complex: context [
 	]
 	
 	;(a+bi)(c+di) = (ac−bd) + (ad+bc)i; fast
-    product: func [
+    cProduct: func [
 	"Multiplies 2 complex numbers"
 		z1		[object!]
 		z2		[object!]
@@ -206,7 +337,7 @@ complex: context [
 		_z
 	]
     ;FOIL Method (Firsts, Outers, Inners, Lasts)			
-	foilProduct: func [
+	cFoilProduct: func [
 	"Multiplies 2 complex numbers"
 		z1		[object!]
 		z2		[object!]
@@ -216,17 +347,17 @@ complex: context [
 		p1 p2 p3 p4	[float!]
 	][
 		_z: copy complexR
-		p1: z1/re * z2/re		;--real product
-		p2: z1/re * z2/im		;--imaginary product
+		p1: z1/re * z2/re		;--cReal cProduct
+		p2: z1/re * z2/im		;--cImaginary cProduct
 		;we have to process i
 		p3: z1/im * z2/re		;--we get i*i
 		p4: z1/im * z2/im * -1	;-- * i^2 = -1
-		_z/re: p1 + p4			;--real part
-		_z/im: p2 + p3			;--imaginary part
+		_z/re: p1 + p4			;--cReal part
+		_z/im: p2 + p3			;--cImaginary part
 		_z
 	]
 	
-	divide: func [
+	cDivide: func [
 	"Divides 2 complex numbers"
 		z1		[object!]
 		z2		[object!]
@@ -235,9 +366,9 @@ complex: context [
 		_z		[object!]
 	][
 		_z: copy complexR
-		c: conjugate z2
-		p1: product z1 c
-		p2: product z2 c
+		c: cConjugate z2
+		p1: cProduct z1 c
+		p2: cProduct z2 c
 		_z/re:  p1/re / p2/re 
 		_z/im:  p1/im / p2/re
 		_z
@@ -271,7 +402,7 @@ complex: context [
 		_z
 	]
 	
-	;-- for printing complex numbers
+	;--for printing complex numbers
 	sAlgebraic: func [
 	"Returns algebraic notation of a complex number as a string"
 		z		[object!]
@@ -292,14 +423,12 @@ complex: context [
 	][
 		;x + iy =	r cos θ + i r sin θ
 		;cis is just shortcut for cos θ + i sin θ
-		str: form modulus z
+		str: form cModulus z
 		append str " cis " 
-		append str argument z
+		append str cArgument z
 		str
 	]
 ];--end of context
-
-
 
 
 
